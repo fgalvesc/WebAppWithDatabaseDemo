@@ -1,22 +1,38 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger: 'none'
 
-pool:
-  vmImage: 'windows-2019'
+jobs:
+- job: WebApp
+  displayName: 'Build Web App'
+  pool:
+    vmImage: 'windows-2019'
+  variables:
+    buildConfiguration: release
 
-variables:
-  buildConfiguration: 'Release'
+  steps:
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: 'restore'
+      projects: '**/WebApp.csproj'
 
-steps:
-- task: DotNetCoreCLI@2
-  displayName: Restore Nuget Packages
-  inputs:
-    command: 'restore'
-    projects: '**/WebApp.csproj'
+  - powershell: |
+     $paths = Get-ChildItem -include *.csproj -Recurse
+     foreach($pathobject in $paths) 
+     {
+         $path = $pathobject.fullname
+         $doc = New-Object System.Xml.XmlDocument
+         $doc.Load($path)
+         $child = $doc.CreateElement("ProjectGuid")
+         $child.InnerText = [guid]::NewGuid().ToString().ToUpper()
+         $node = $doc.SelectSingleNode("//Project/PropertyGroup")
+         $node.AppendChild($child)
+         $doc.Save($path)
+     }
+    workingDirectory: WebApp
+    displayName: 'PS : Add Project GUID'
+    enabled: false
+  
+  
 
 - task: DotNetCoreCLI@2
   displayName: Build Web App
