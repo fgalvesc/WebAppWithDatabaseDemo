@@ -32,31 +32,55 @@ jobs:
     displayName: 'PS : Add Project GUID'
     enabled: false
   
+  - task: SonarCloudPrepare@3
+    displayName: 'Prepare Analysis on SonarCloud'
+    inputs:
+      SonarQube: 'svc-sonar'
+      organization: 'azdvptreinamento'
+      projectKey: 'WebAppwithDatabaseDemoKey'
+
+  - task: DotNetCoreCLI@2
+    displayName: Build Web App
+    inputs:
+      command: 'build'
+      projects: '**/WebApp.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: Run Unit Tests
+    inputs:
+      command: 'test'
+      projects: '**/*UnitTest*.csproj'
+      arguments: '--configuration $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: Create Web App Package (.zip)
+    inputs:
+      command: 'publish'
+      publishWebProjects: true
+      arguments: '--configuration $(buildConfiguration) --output $(build.artifactstagingdirectory)'
+      zipAfterPublish: True
   
+  - task: SonarCloudAnalyze@3
+    displayName: 'Run Code Analysis'
 
-- task: DotNetCoreCLI@2
-  displayName: Build Web App
-  inputs:
-    command: 'build'
-    projects: '**/WebApp.csproj'
-    arguments: '--configuration $(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  displayName: Run Unit Tests
-  inputs:
-    command: 'test'
-    projects: '**/*UnitTest*.csproj'
-    arguments: '--configuration $(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  displayName: Create Web App Package (.zip)
-  inputs:
-    command: 'publish'
-    publishWebProjects: true
-    arguments: '--configuration $(buildConfiguration) --output $(build.artifactstagingdirectory)'
-    zipAfterPublish: True
+  - task: SonarCloudPublish@3
+    displayName: 'Publish Quality Gate Result'
   
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact (WebApp.zip)'
-  inputs:
-    PathtoPublish: '$(build.artifactstagingdirectory)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact (WebApp.zip)'
+    inputs:
+      PathtoPublish: '$(build.artifactstagingdirectory)'
+
+- job: Database
+  displayName: 'BUild Database'
+  pool:
+    vmImage: 'windows-2019'
+  
+  steps:
+  - task: MSBuild@1
+    displayName: 'Build Solution WebApp.Database.sqlproj'
+    inputs:
+      solution: WebApp.Database/WebApp.Database.sqlproj
+      msbuildArguments: '/p:OutDir=$(Build.ArtifactStagingDirectory)'
+
