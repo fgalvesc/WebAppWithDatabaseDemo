@@ -84,3 +84,34 @@ jobs:
       solution: WebApp.Database/WebApp.Database.sqlproj
       msbuildArguments: '/p:OutDir=$(Build.ArtifactStagingDirectory)'
 
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact (Dacpac)'
+    inputs:
+      ArtifactName: 'dacpac'
+
+- job: Selenium
+  displayName: 'Build UI Tests'
+  pool:
+    vmImage: 'windows-2019'
+
+  steps:
+  - task: NuGetToolInstaller@1
+    displayName: 'Use NuGet 4.3.0'
+
+  - task: NuGetCommand@2
+    displayName: 'NuGet Restore'
+    inputs:
+      command: 'restore'
+      restoreSolution: WebAppWithDatabase.sln
+  
+  - task: MSBuild@1
+    displayName: 'Build Project SeleniumUITests.csproj'
+    inputs:
+      solution: SeleniumUITests/SeleniumUITests.csproj
+      msbuildArguments: '/p:OutDir=$(Build.ArtifactStagingDirectory)'
+  
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: UI-Test'
+    inputs:
+      ArtifactName: 'UI-Test'
+
